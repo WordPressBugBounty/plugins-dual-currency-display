@@ -1,0 +1,91 @@
+msgid ""
+msgstr ""
+"Project-Id-Version: Dual Currency Display for WooCommerce 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dual-currency-display\n"
+"POT-Creation-Date: 2023-12-01T12:00:00+00:00\n"
+"PO-Revision-Date: 2024-04-11 12:00+0200\n"
+"Last-Translator: \n"
+"Language-Team: Bulgarian\n"
+"Language: bg_BG\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 3.0\n"
+"X-Domain: dual-currency-display\n"
+
+#. Plugin Name of the plugin
+msgid "Dual Currency Display for WooCommerce"
+msgstr "Смяна на валута – Лева (BGN) към Евро(EUR)"
+
+#. Plugin URI of the plugin
+msgid "https://ignatovdesigns.com/dual-currency"
+msgstr "https://ignatovdesigns.com/dual-currency"
+
+#. Description of the plugin
+msgid "Display prices in both BGN and EUR currencies with flexible conversion tools."
+msgstr "Показване на цени в български лева (BGN) и евро (EUR) с допълнителни инструменти за конвертиране."
+
+#. Author of the plugin
+msgid "IgnatovDesigns.com"
+msgstr "IgnatovDesigns.com"
+
+#. Author URI of the plugin
+msgid "https://ignatovdesigns.com"
+msgstr "https://ignatovdesigns.com"
+
+#: dual-currency-display.php:106
+msgid "Dual Currency Display requires WooCommerce to be installed and active."
+msgstr "Двойното показване на валути изисква инсталиран и активиран WooCommerce."
+
+#: includes/class-dual-currency-admin.php:219
+msgid "Update BGN to EUR Exchange Rate"
+msgstr "Актуализиране на обменния курс от лева (BGN) към (EUR)"
+
+#: includes/class-dual-currency-admin.php:225
+msgid "Current Exchange Rate"
+msgstr "Текущ обменен курс"
+
+#: includes/class-dual-currency-admin.php:233
+msgid "This exchange rate is used for all currency conversions throughout your store."
+msgstr "Този обменен курс се използва за всички валутни конверсии в целия ви магазин."
+
+#: includes/class-dual-currency-admin.php:239
+msgid "New Exchange Rate (BGN/EUR):"
+msgstr "Нов обменен курс (BGN/EUR):"
+
+#: includes/class-dual-currency-admin.php:243
+msgid "Update Exchange Rate"
+msgstr "Актуализиране на обменния курс"
+
+#: includes/class-dual-currency-admin.php:249
+msgid "Exchange Rate Information"
+msgstr "Информация за обменния курс"
+
+#: includes/class-dual-currency-admin.php:250
+msgid "The official BGN/EUR exchange rate is fixed at 1.95583 as Bulgaria uses a currency board arrangement."
+msgstr "Официалният обменен курс BGN/EUR е фиксиран на 1.95583, тъй като България използва система на валутен борд."
+
+#: includes/class-dual-currency-admin.php:251
+msgid "You can modify this rate if needed, but for most Bulgarian stores, using the fixed rate is recommended."
+msgstr "Можете да промените този курс, ако е необходимо, но за повечето български магазини се препоръчва използването на фиксирания курс."
+
+#: includes/class-dual-currency-admin.php:254
+msgid "Note: Changing the exchange rate will affect how prices are displayed, but will not automatically convert your product prices."
+msgstr "Забележка: Промяната на обменния курс ще повлияе на начина на показване на цените, но няма автоматично да конвертира цените на вашите продукти."
+
+#: includes/class-dual-currency-admin.php:257
+msgid "To convert your actual product prices, use the BGN to EUR or EUR to BGN conversion tools."
+msgstr "За да конвертирате реалните цени на вашите продукти, използвайте инструментите за конвертиране от лева (BGN) към евро (EUR) или от евро (EUR) към лева (BGN)."
+
+#: includes/class-dual-currency-admin.php:176
+msgid "Exchange rate updated successfully!"
+msgstr "Обменният курс е актуализиран успешно!"
+
+#: includes/class-dual-currency-admin.php:179
+msgid "Invalid exchange rate. Please enter a valid number."
+msgstr "Невалиден обменен курс. Моля, въведете валидно число."
+
+#: includes/class-dual-currency-admin.php:108
+msgid "You do not have sufficient permissions to access this page."
+msgstr "Нямате достатъчно права за достъп до тази страница."

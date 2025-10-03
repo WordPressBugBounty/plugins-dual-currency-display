@@ -1,0 +1,91 @@
+# Copyright (C) 2023 IgnatovDesigns.com
+# This file is distributed under the GPL v2 or later.
+msgid ""
+msgstr ""
+"Project-Id-Version: Dual Currency Display for WooCommerce 1.0.0\n"
+"Report-Msgid-Bugs-To: https://wordpress.org/support/plugin/dual-currency-display\n"
+"Last-Translator: FULL NAME <EMAIL@ADDRESS>\n"
+"Language-Team: LANGUAGE <LL@li.org>\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"POT-Creation-Date: 2023-12-01T12:00:00+00:00\n"
+"PO-Revision-Date: YEAR-MO-DA HO:MI+ZONE\n"
+"X-Generator: WP-CLI 2.7.1\n"
+"X-Domain: dual-currency-display\n"
+
+#. Plugin Name of the plugin
+msgid "Dual Currency Display for WooCommerce"
+msgstr ""
+
+#. Plugin URI of the plugin
+msgid "https://ignatovdesigns.com/dual-currency"
+msgstr ""
+
+#. Description of the plugin
+msgid "Display prices in both BGN and EUR currencies with flexible conversion tools."
+msgstr ""
+
+#. Author of the plugin
+msgid "IgnatovDesigns.com"
+msgstr ""
+
+#. Author URI of the plugin
+msgid "https://ignatovdesigns.com"
+msgstr ""
+
+#: dual-currency-display.php:106
+msgid "Dual Currency Display requires WooCommerce to be installed and active."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:219
+msgid "Update BGN to EUR Exchange Rate"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:225
+msgid "Current Exchange Rate"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:233
+msgid "This exchange rate is used for all currency conversions throughout your store."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:239
+msgid "New Exchange Rate (BGN/EUR):"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:243
+msgid "Update Exchange Rate"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:249
+msgid "Exchange Rate Information"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:250
+msgid "The official BGN/EUR exchange rate is fixed at 1.95583 as Bulgaria uses a currency board arrangement."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:251
+msgid "You can modify this rate if needed, but for most Bulgarian stores, using the fixed rate is recommended."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:254
+msgid "Note: Changing the exchange rate will affect how prices are displayed, but will not automatically convert your product prices."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:257
+msgid "To convert your actual product prices, use the BGN to EUR or EUR to BGN conversion tools."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:176
+msgid "Exchange rate updated successfully!"
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:179
+msgid "Invalid exchange rate. Please enter a valid number."
+msgstr ""
+
+#: includes/class-dual-currency-admin.php:108
+msgid "You do not have sufficient permissions to access this page."
+msgstr ""

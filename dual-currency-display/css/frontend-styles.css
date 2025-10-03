@@ -1,0 +1,14 @@
+.dual-currency-wrapper {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+}
+.secondary-currency {
+    font-size: inherit;
+    line-height: inherit;
+    font-weight: inherit;
+}
+/* Ensure brackets have the same styling as prices */
+.secondary-currency .woocommerce-Price-amount {
+    font-size: inherit;
+}
