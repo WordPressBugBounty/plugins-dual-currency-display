@@ -3,7 +3,7 @@ Contributors: ignatovdesigns
 Tags: woocommerce, currency, bgn, eur, conversion
 Requires at least: 5.0
 Tested up to: 6.8
-Stable tag: 1.0.4
+Stable tag: 1.0.7
 Requires PHP: 7.2
 License: GPLv2 or later
 License URI: https://www.gnu.org/licenses/gpl-2.0.html
@@ -89,6 +89,18 @@ Currently, this plugin is only compatible with Bulgarisation for WooCommerce and
 4. Exchange rate settings
 
 == Changelog ==
+= 1.0.6 =
+* Updated Bulgarian translations
+
+= 1.0.5 =
+* Fixed: Rounding errors when displaying secondary currency (e.g., 50.00 BGN now stays 50.00 instead of showing 49.99 or 50.01)
+
+= 1.0.4 =
+* Fixed: Rounding errors when displaying secondary currency (e.g., 50.00 BGN now stays 50.00 instead of showing 49.99 or 50.01)
+* Added: Storage of original prices during currency conversion to maintain accuracy
+* Enhanced: Sale prices now display secondary currency for both regular and sale amounts (e.g., ~~45,00 лв. (23,01 €)~~ 10,00 лв. (5,11 €))
+* Improved: More accurate cart and checkout totals using stored original prices
+* Updated: Variable product price handling for better accuracy with stored prices
 
 = 1.0.3 =
 * Fixed VAT calculation issue in EUR subtotal display

@@ -3,7 +3,7 @@
  * Plugin Name: Dual Currency Display
  * Plugin URI: https://ignatovdesigns.com/dual-currency
  * Description: Display prices in both BGN and EUR currencies with flexible conversion tools.
- * Version: 1.0.3
+ * Version: 1.0.7
  * Author: IgnatovDesigns.com
  * Author URI: https://ignatovdesigns.com
  * Text Domain: dual-currency-display
@@ -28,7 +28,7 @@ add_action('before_woocommerce_init', function() {
 });
 
 // Define plugin constants
-define('DUAL_CURRENCY_VERSION', '1.0.3');  // Update from 1.0.0 to 1.0.3
+define('DUAL_CURRENCY_VERSION', '1.0.7');
 define('DUAL_CURRENCY_PATH', plugin_dir_path(__FILE__));
 define('DUAL_CURRENCY_URL', plugin_dir_url(__FILE__));
 define('DUAL_CURRENCY_BASENAME', plugin_basename(__FILE__));
@@ -100,18 +100,18 @@ class Dual_Currency_Display {
         add_action('wp_enqueue_scripts', array($this, 'add_frontend_styles'));
     }
     
-  /**
- * Add frontend styles for currency display
- */
-public function add_frontend_styles() {
-    // Enqueue the frontend CSS file
-    wp_enqueue_style(
-        'dual-currency-frontend-styles',
-        DUAL_CURRENCY_URL . 'css/frontend-styles.css',
-        array(),
-        DUAL_CURRENCY_VERSION
-    );
-}
+    /**
+     * Add frontend styles for currency display
+     */
+    public function add_frontend_styles() {
+        // Enqueue the frontend CSS file
+        wp_enqueue_style(
+            'dual-currency-frontend-styles',
+            DUAL_CURRENCY_URL . 'css/frontend-styles.css',
+            array(),
+            DUAL_CURRENCY_VERSION
+        );
+    }
     
     /**
      * Include required files
@@ -119,7 +119,7 @@ public function add_frontend_styles() {
     private function include_files() {
         require_once DUAL_CURRENCY_PATH . 'includes/class-dual-currency-admin.php';
         require_once DUAL_CURRENCY_PATH . 'includes/class-dual-currency-converter.php';
-        require_once DUAL_CURRENCY_PATH . 'includes/class-cart-improvements.php'; // Add this line
+        require_once DUAL_CURRENCY_PATH . 'includes/class-cart-improvements.php';
     }
     
     /**
@@ -219,70 +219,147 @@ public function add_frontend_styles() {
         }
     }
     
-   /**
- * Add secondary currency to product price display with consistent styling
- * Updated to handle variable products properly
- */
-public function add_secondary_currency_price($price, $product) {
-    // Return original price if dual currency is disabled
-    if (!self::is_dual_currency_enabled()) {
+    /**
+     * Get stored original price or calculate if not available
+     * 
+     * @param int $product_id Product or variation ID
+     * @param float $current_price Current price in the main currency
+     * @param string $price_type Type of price (regular or sale)
+     * @param string $from_currency Source currency
+     * @return float The original price or calculated conversion
+     */
+    private static function get_original_or_converted_price($product_id, $current_price, $price_type = 'regular', $from_currency = 'EUR') {
+        $meta_key = $from_currency === 'EUR' 
+            ? '_original_bgn_' . $price_type . '_price'
+            : '_original_eur_' . $price_type . '_price';
+        
+        $original_price = get_post_meta($product_id, $meta_key, true);
+        
+        if (!empty($original_price)) {
+            return $original_price;
+        }
+        
+        // Fallback to calculation if no stored price
+        return self::convert_currency($current_price, $from_currency);
+    }
+    
+    /**
+     * Add secondary currency to product price display with consistent styling
+     * Updated to handle variable products, sale prices, and use stored original prices
+     */
+    public function add_secondary_currency_price($price, $product) {
+        // Return original price if dual currency is disabled
+        if (!self::is_dual_currency_enabled()) {
+            return $price;
+        }
+        
+        $currency = get_woocommerce_currency();
+        $product_id = $product->get_id();
+        
+        // Special handling for variable products with price ranges
+        if ($product->is_type('variable')) {
+            $min_price = floatval($product->get_variation_price('min', true));
+            $max_price = floatval($product->get_variation_price('max', true));
+            
+            if ($currency === 'BGN') {
+                // Convert min and max prices
+                $min_price_eur = self::convert_currency($min_price, 'BGN');
+                $max_price_eur = self::convert_currency($max_price, 'BGN');
+                
+                // If min and max are the same
+                if ($min_price === $max_price) {
+                    return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($min_price_eur, array('currency' => 'EUR')) . ')</span></span>';
+                }
+                
+                // Format as price range
+                $price_range_eur = wc_price($min_price_eur, array('currency' => 'EUR')) . ' - ' . wc_price($max_price_eur, array('currency' => 'EUR'));
+                return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . $price_range_eur . ')</span></span>';
+            } else if ($currency === 'EUR') {
+                // Convert min and max prices - check for stored originals
+                $variations = $product->get_children();
+                $min_variation_id = null;
+                $max_variation_id = null;
+                
+                // Find which variations have min/max prices
+                foreach ($variations as $variation_id) {
+                    $variation = wc_get_product($variation_id);
+                    if ($variation && floatval($variation->get_price()) === $min_price) {
+                        $min_variation_id = $variation_id;
+                    }
+                    if ($variation && floatval($variation->get_price()) === $max_price) {
+                        $max_variation_id = $variation_id;
+                    }
+                }
+                
+                // Try to get stored original BGN prices
+                $min_price_bgn = $min_variation_id 
+                    ? self::get_original_or_converted_price($min_variation_id, $min_price, 'regular', 'EUR')
+                    : self::convert_currency($min_price, 'EUR');
+                    
+                $max_price_bgn = $max_variation_id 
+                    ? self::get_original_or_converted_price($max_variation_id, $max_price, 'regular', 'EUR')
+                    : self::convert_currency($max_price, 'EUR');
+                
+                // If min and max are the same
+                if ($min_price === $max_price) {
+                    return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($min_price_bgn, array('currency' => 'BGN')) . ')</span></span>';
+                }
+                
+                // Format as price range
+                $price_range_bgn = wc_price($min_price_bgn, array('currency' => 'BGN')) . ' - ' . wc_price($max_price_bgn, array('currency' => 'BGN'));
+                return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . $price_range_bgn . ')</span></span>';
+            }
+        } 
+        // Regular product price handling (non-variable)
+        else {
+            // Check if product is on sale
+            if ($product->is_on_sale() && $product->get_regular_price() && $product->get_sale_price()) {
+                $regular_price = floatval($product->get_regular_price());
+                $sale_price = floatval($product->get_sale_price());
+                
+                if ($currency === 'BGN') {
+                    // Main: BGN, Secondary: EUR
+                    $regular_price_eur = self::convert_currency($regular_price, 'BGN');
+                    $sale_price_eur = self::convert_currency($sale_price, 'BGN');
+                    
+                    // Format with both prices showing secondary currency
+                    $formatted_regular = wc_price($regular_price) . ' <span class="secondary-currency">(' . wc_price($regular_price_eur, array('currency' => 'EUR')) . ')</span>';
+                    $formatted_sale = wc_price($sale_price) . ' <span class="secondary-currency">(' . wc_price($sale_price_eur, array('currency' => 'EUR')) . ')</span>';
+                    
+                    return '<span class="dual-currency-wrapper"><del aria-hidden="true"><span class="woocommerce-Price-amount amount">' . $formatted_regular . '</span></del> <ins><span class="woocommerce-Price-amount amount">' . $formatted_sale . '</span></ins></span>';
+                    
+                } else if ($currency === 'EUR') {
+                    // Main: EUR, Secondary: BGN
+                    // Get stored original BGN prices
+                    $regular_price_bgn = self::get_original_or_converted_price($product_id, $regular_price, 'regular', 'EUR');
+                    $sale_price_bgn = self::get_original_or_converted_price($product_id, $sale_price, 'sale', 'EUR');
+                    
+                    // Format with both prices showing secondary currency
+                    $formatted_regular = wc_price($regular_price, array('currency' => 'EUR')) . ' <span class="secondary-currency">(' . wc_price($regular_price_bgn, array('currency' => 'BGN')) . ')</span>';
+                    $formatted_sale = wc_price($sale_price, array('currency' => 'EUR')) . ' <span class="secondary-currency">(' . wc_price($sale_price_bgn, array('currency' => 'BGN')) . ')</span>';
+                    
+                    return '<span class="dual-currency-wrapper"><del aria-hidden="true"><span class="woocommerce-Price-amount amount">' . $formatted_regular . '</span></del> <ins><span class="woocommerce-Price-amount amount">' . $formatted_sale . '</span></ins></span>';
+                }
+            } 
+            // Regular price (no sale)
+            else {
+                $product_price = floatval($product->get_price());
+                
+                if ($currency === 'BGN') {
+                    // Main: BGN, Secondary: EUR
+                    $secondary_price = self::convert_currency($product_price, 'BGN');
+                    return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
+                } else if ($currency === 'EUR') {
+                    // Main: EUR, Secondary: BGN
+                    // Try to get stored original BGN price to avoid rounding errors
+                    $secondary_price = self::get_original_or_converted_price($product_id, $product_price, 'regular', 'EUR');
+                    return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
+                }
+            }
+        }
+        
         return $price;
     }
-    
-    $currency = get_woocommerce_currency();
-    
-    // Special handling for variable products with price ranges
-    if ($product->is_type('variable')) {
-        $min_price = floatval($product->get_variation_price('min', true));
-        $max_price = floatval($product->get_variation_price('max', true));
-        
-        if ($currency === 'BGN') {
-            // Convert min and max prices
-            $min_price_eur = self::convert_currency($min_price, 'BGN');
-            $max_price_eur = self::convert_currency($max_price, 'BGN');
-            
-            // If min and max are the same
-            if ($min_price === $max_price) {
-                return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($min_price_eur, array('currency' => 'EUR')) . ')</span></span>';
-            }
-            
-            // Format as price range
-            $price_range_eur = wc_price($min_price_eur, array('currency' => 'EUR')) . ' - ' . wc_price($max_price_eur, array('currency' => 'EUR'));
-            return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . $price_range_eur . ')</span></span>';
-        } else if ($currency === 'EUR') {
-            // Convert min and max prices
-            $min_price_bgn = self::convert_currency($min_price, 'EUR');
-            $max_price_bgn = self::convert_currency($max_price, 'EUR');
-            
-            // If min and max are the same
-            if ($min_price === $max_price) {
-                return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($min_price_bgn, array('currency' => 'BGN')) . ')</span></span>';
-            }
-            
-            // Format as price range
-            $price_range_bgn = wc_price($min_price_bgn, array('currency' => 'BGN')) . ' - ' . wc_price($max_price_bgn, array('currency' => 'BGN'));
-            return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . $price_range_bgn . ')</span></span>';
-        }
-    } 
-    // Regular product price handling (non-variable)
-    else {
-        $product_price = floatval($product->get_price());
-        
-        if ($currency === 'BGN') {
-            // Main: BGN, Secondary: EUR
-            $secondary_price = self::convert_currency($product_price, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
-            return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
-        } else if ($currency === 'EUR') {
-            // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($product_price, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
-            return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
-        }
-    }
-    
-    return $price;
-}
     
     /**
      * Add secondary currency to cart item price with consistent styling
@@ -294,17 +371,20 @@ public function add_secondary_currency_price($price, $product) {
         }
         
         $currency = get_woocommerce_currency();
-        $product_price = floatval($cart_item['data']->get_price());
+        $product = $cart_item['data'];
+        $product_price = floatval($product->get_price());
+        $product_id = $product->get_id();
+        $is_on_sale = $product->is_on_sale();
         
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($product_price, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($product_price, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            // Try to get stored original BGN price
+            $price_type = $is_on_sale ? 'sale' : 'regular';
+            $secondary_price = self::get_original_or_converted_price($product_id, $product_price, $price_type, 'EUR');
             return '<span class="dual-currency-wrapper">' . $price . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -326,12 +406,21 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($product_total, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($product_total, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            // For line totals, we need to calculate based on quantity
+            $product = $cart_item['data'];
+            $product_id = $product->get_id();
+            $quantity = $cart_item['quantity'];
+            $is_on_sale = $product->is_on_sale();
+            $price_type = $is_on_sale ? 'sale' : 'regular';
+            
+            // Get stored original price and multiply by quantity
+            $unit_price_eur = floatval($product->get_price());
+            $original_unit_price_bgn = self::get_original_or_converted_price($product_id, $unit_price_eur, $price_type, 'EUR');
+            $secondary_price = $original_unit_price_bgn * $quantity;
+            
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -353,16 +442,44 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($cart_subtotal, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . wc_price($cart_subtotal) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($cart_subtotal, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            // Calculate BGN subtotal from stored original prices
+            $secondary_price = $this->calculate_cart_total_in_secondary_currency();
             return '<span class="dual-currency-wrapper">' . wc_price($cart_subtotal) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
         return $subtotal;
+    }
+    
+    /**
+     * Calculate cart total in secondary currency using stored original prices
+     * 
+     * @return float Total in secondary currency
+     */
+    private function calculate_cart_total_in_secondary_currency() {
+        $total = 0;
+        
+        foreach (WC()->cart->get_cart() as $cart_item) {
+            $product = $cart_item['data'];
+            $product_id = $product->get_id();
+            $quantity = $cart_item['quantity'];
+            $is_on_sale = $product->is_on_sale();
+            $price_type = $is_on_sale ? 'sale' : 'regular';
+            
+            $unit_price_eur = floatval($product->get_price());
+            $original_unit_price_bgn = self::get_original_or_converted_price($product_id, $unit_price_eur, $price_type, 'EUR');
+            $total += $original_unit_price_bgn * $quantity;
+        }
+        
+        // Add tax if applicable
+        $cart_tax = WC()->cart->get_subtotal_tax();
+        if ($cart_tax > 0) {
+            $total += self::convert_currency($cart_tax, 'EUR');
+        }
+        
+        return $total;
     }
     
     /**
@@ -380,12 +497,24 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($cart_total, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . wc_price($cart_total) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($cart_total, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            // Calculate BGN total from stored original prices
+            $secondary_price = $this->calculate_cart_total_in_secondary_currency();
+            
+            // Add shipping if applicable
+            $shipping_total = WC()->cart->get_shipping_total();
+            if ($shipping_total > 0) {
+                $secondary_price += self::convert_currency($shipping_total, 'EUR');
+            }
+            
+            // Add shipping tax if applicable
+            $shipping_tax = WC()->cart->get_shipping_tax();
+            if ($shipping_tax > 0) {
+                $secondary_price += self::convert_currency($shipping_tax, 'EUR');
+            }
+            
             return '<span class="dual-currency-wrapper">' . wc_price($cart_total) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -408,12 +537,10 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($order_total, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . wc_price($order_total, array('currency' => $currency)) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
             $secondary_price = self::convert_currency($order_total, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . wc_price($order_total, array('currency' => $currency)) . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -436,12 +563,10 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($line_total, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
             $secondary_price = self::convert_currency($line_total, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -463,12 +588,10 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($cart_subtotal, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($cart_subtotal, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            $secondary_price = $this->calculate_cart_total_in_secondary_currency();
             return '<span class="dual-currency-wrapper">' . $subtotal . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         
@@ -490,12 +613,17 @@ public function add_secondary_currency_price($price, $product) {
         if ($currency === 'BGN') {
             // Main: BGN, Secondary: EUR
             $secondary_price = self::convert_currency($cart_total, 'BGN');
-            // Use a span to wrap both currencies with consistent styling
             return '<span class="dual-currency-wrapper">' . $total . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'EUR')) . ')</span></span>';
         } else if ($currency === 'EUR') {
             // Main: EUR, Secondary: BGN
-            $secondary_price = self::convert_currency($cart_total, 'EUR');
-            // Use a span to wrap both currencies with consistent styling
+            $secondary_price = $this->calculate_cart_total_in_secondary_currency();
+            
+            // Add shipping if applicable
+            $shipping_total = WC()->cart->get_shipping_total();
+            if ($shipping_total > 0) {
+                $secondary_price += self::convert_currency($shipping_total, 'EUR');
+            }
+            
             return '<span class="dual-currency-wrapper">' . $total . ' <span class="secondary-currency">(' . wc_price($secondary_price, array('currency' => 'BGN')) . ')</span></span>';
         }
         

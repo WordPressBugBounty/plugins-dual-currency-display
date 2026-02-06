@@ -257,15 +257,8 @@ class Dual_Currency_Admin {
         // Bulgarian translations for each page
         $translations = array(
             'dual-currency-conversion' => '
-                <h3>Конвертор от Лева в Евро</h3>
-                <p>С този инструмент можете да конвертирате всички цени на продуктите от български лева (BGN) в евро (EUR) използвайки валутния курс 1 EUR = 1.95583 BGN.</p>
-                <ul>
-                    <li><strong>Create a backup of price data before conversion  / Създаване на резервно копие</strong> - Създава резервно копие на цените преди конверсията</li>
-                    <li><strong>Update WooCommerce currency setting to EUR  / Обновяване на валутната настройка</strong> - Променя валутата на WooCommerce на EUR и вторичната остава BGN</li>
-                    <li><strong>Disable dual currency display (show EUR only) ON / Чрез тази опция, ако е включена може да деактивирате двойното показване на цените (цените остават само EUR)</li>
-                    <li><strong>Disable dual currency display (show EUR only) OFF / Ако е изключена ще се покажат и двете валути</li>
-                    <li><strong>Convert All prices to EUR / Конвертиране на всички цени в EUR</strong> - Стартира процеса на конвертиране</li>
-                </ul>
+                <h2>ВАЖНО!!! Този плъгин е създаден за преходния период BGN → EUR. След 01.01.2026 WooCommerce използва евро като основна валута за България и плъгинът няма да бъде поддържан. Препоръчва се деактивиране преди тази дата.</h2>
+                
                 <div class="ignatov-currency-blue-notice">
     <p><strong>Забележка:</strong> Когато конвертирате от BGN към EUR препоръчваме да оставите опцията "Disable dual currency display" изключена, за да се показват цените и в двете валути.</p>
 </div>

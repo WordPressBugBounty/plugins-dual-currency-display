@@ -32,36 +32,33 @@ class Dual_Currency_Converter {
         $cache_key = 'dual_currency_backup_table_exists';
         $table_exists = wp_cache_get($cache_key);
 
-if (false === $table_exists) {
-    $table_exists = get_option('dual_currency_table_exists_' . $table_name, false);
-wp_cache_set($cache_key, $table_exists, 'dual_currency', 3600);
-}
+        if (false === $table_exists) {
+            $table_exists = get_option('dual_currency_table_exists_' . $table_name, false);
+            wp_cache_set($cache_key, $table_exists, 'dual_currency', 3600);
+        }
 
-if($table_exists != $table_name) {
-    require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
-    
-    $sql = "CREATE TABLE {$wpdb->prefix}wc_price_backup (
-        backup_id bigint(20) NOT NULL AUTO_INCREMENT,
-        post_id bigint(20) NOT NULL,
-        meta_key varchar(255) NOT NULL,
-        price_value decimal(15,4) NOT NULL,
-        currency varchar(10) NOT NULL,
-        backup_date datetime DEFAULT CURRENT_TIMESTAMP,
-        PRIMARY KEY (backup_id),
-        KEY post_id (post_id),
-        KEY meta_key (meta_key)
-    )";
-    
-    dbDelta($sql);
-    
-    // Store that the table now exists
-    update_option('dual_currency_table_exists_' . $table_name, $table_name);
-}
+        if($table_exists != $table_name) {
+            require_once(ABSPATH . 'wp-admin/includes/upgrade.php');
+            
+            $sql = "CREATE TABLE {$wpdb->prefix}wc_price_backup (
+                backup_id bigint(20) NOT NULL AUTO_INCREMENT,
+                post_id bigint(20) NOT NULL,
+                meta_key varchar(255) NOT NULL,
+                price_value decimal(15,4) NOT NULL,
+                currency varchar(10) NOT NULL,
+                backup_date datetime DEFAULT CURRENT_TIMESTAMP,
+                PRIMARY KEY (backup_id),
+                KEY post_id (post_id),
+                KEY meta_key (meta_key)
+            )";
+            
+            dbDelta($sql);
+            
+            // Store that the table now exists
+            update_option('dual_currency_table_exists_' . $table_name, $table_name);
+        }
 
-// Get current currency (only need this once)
-$currency = get_woocommerce_currency();
-
-        // Get current currency
+        // Get current currency (only need this once)
         $currency = get_woocommerce_currency();
         
         try {
@@ -142,27 +139,28 @@ $currency = get_woocommerce_currency();
             }
             
             // Insert in batches if there's data
-if (!empty($insert_data)) {
-    // Create the base SQL query with the table name
-    $sql = "INSERT INTO {$wpdb->prefix}wc_price_backup 
-            (post_id, meta_key, price_value, currency)
-            VALUES " . implode(',', $insert_data);
-    
-    // Use a direct query since values are already prepared individually
-    $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
-}
+            if (!empty($insert_data)) {
+                // Create the base SQL query with the table name
+                $sql = "INSERT INTO {$wpdb->prefix}wc_price_backup 
+                        (post_id, meta_key, price_value, currency)
+                        VALUES " . implode(',', $insert_data);
+                
+                // Use a direct query since values are already prepared individually
+                $wpdb->query($sql); // phpcs:ignore WordPress.DB.PreparedSQL.NotPrepared
+            }
 
-return true;
-} catch (Exception $e) {
-    if (defined('WP_DEBUG') && WP_DEBUG) {
-        error_log('Error backing up prices: ' . $e->getMessage());
+            return true;
+        } catch (Exception $e) {
+            if (defined('WP_DEBUG') && WP_DEBUG) {
+                error_log('Error backing up prices: ' . $e->getMessage());
+            }
+            throw new Exception('Error backing up prices: ' . esc_html($e->getMessage()));
+        }
     }
-    throw new Exception('Error backing up prices: ' . esc_html($e->getMessage()));
-}
-}
 
     /**
      * Convert all prices from BGN to EUR - HPOS compatible
+     * Stores original BGN prices to avoid rounding errors on display
      * 
      * @param float $exchange_rate Exchange rate (BGN/EUR)
      * @return array Result information
@@ -204,6 +202,8 @@ return true;
                 if (!empty($bgn_regular_price)) {
                     $eur_regular_price = round($bgn_regular_price / $exchange_rate, 2);
                     $product->set_regular_price($eur_regular_price);
+                    // Store original BGN price for accurate display
+                    update_post_meta($product_id, '_original_bgn_regular_price', $bgn_regular_price);
                 }
                 
                 // Sale price
@@ -211,6 +211,8 @@ return true;
                 if (!empty($bgn_sale_price)) {
                     $eur_sale_price = round($bgn_sale_price / $exchange_rate, 2);
                     $product->set_sale_price($eur_sale_price);
+                    // Store original BGN sale price for accurate display
+                    update_post_meta($product_id, '_original_bgn_sale_price', $bgn_sale_price);
                 }
                 
                 // For variable products, update variation prices
@@ -227,12 +229,16 @@ return true;
                         if (!empty($var_regular_price)) {
                             $var_eur_regular_price = round($var_regular_price / $exchange_rate, 2);
                             $variation->set_regular_price($var_eur_regular_price);
+                            // Store original BGN price for variation
+                            update_post_meta($variation_id, '_original_bgn_regular_price', $var_regular_price);
                         }
                         
                         $var_sale_price = $variation->get_sale_price();
                         if (!empty($var_sale_price)) {
                             $var_eur_sale_price = round($var_sale_price / $exchange_rate, 2);
                             $variation->set_sale_price($var_eur_sale_price);
+                            // Store original BGN sale price for variation
+                            update_post_meta($variation_id, '_original_bgn_sale_price', $var_sale_price);
                         }
                         
                         $variation->save();
@@ -265,6 +271,7 @@ return true;
 
     /**
      * Convert all prices from EUR to BGN - HPOS compatible
+     * Stores original EUR prices to avoid rounding errors on display
      * 
      * @param float $exchange_rate Exchange rate (BGN/EUR)
      * @return array Result information
@@ -306,6 +313,8 @@ return true;
                 if (!empty($eur_regular_price)) {
                     $bgn_regular_price = round($eur_regular_price * $exchange_rate, 2);
                     $product->set_regular_price($bgn_regular_price);
+                    // Store original EUR price for accurate display
+                    update_post_meta($product_id, '_original_eur_regular_price', $eur_regular_price);
                 }
                 
                 // Sale price
@@ -313,6 +322,8 @@ return true;
                 if (!empty($eur_sale_price)) {
                     $bgn_sale_price = round($eur_sale_price * $exchange_rate, 2);
                     $product->set_sale_price($bgn_sale_price);
+                    // Store original EUR sale price for accurate display
+                    update_post_meta($product_id, '_original_eur_sale_price', $eur_sale_price);
                 }
                 
                 // For variable products, update variation prices
@@ -329,12 +340,16 @@ return true;
                         if (!empty($var_regular_price)) {
                             $var_bgn_regular_price = round($var_regular_price * $exchange_rate, 2);
                             $variation->set_regular_price($var_bgn_regular_price);
+                            // Store original EUR price for variation
+                            update_post_meta($variation_id, '_original_eur_regular_price', $var_regular_price);
                         }
                         
                         $var_sale_price = $variation->get_sale_price();
                         if (!empty($var_sale_price)) {
                             $var_bgn_sale_price = round($var_sale_price * $exchange_rate, 2);
                             $variation->set_sale_price($var_bgn_sale_price);
+                            // Store original EUR sale price for variation
+                            update_post_meta($variation_id, '_original_eur_sale_price', $var_sale_price);
                         }
                         
                         $variation->save();
@@ -367,6 +382,7 @@ return true;
     
     /**
      * Restore prices from backup - HPOS compatible
+     * Also clears stored original prices
      * 
      * @param string $currency Currency to restore (BGN or EUR)
      * @param bool $enable_dual_currency Whether to enable dual currency display after restoration
@@ -396,9 +412,15 @@ return true;
                 if ($record->meta_key === '_regular_price') {
                     $product->set_regular_price($record->price_value);
                     $restored++;
+                    // Clear stored original prices
+                    delete_post_meta($record->post_id, '_original_bgn_regular_price');
+                    delete_post_meta($record->post_id, '_original_eur_regular_price');
                 } else if ($record->meta_key === '_sale_price') {
                     $product->set_sale_price($record->price_value);
                     $restored++;
+                    // Clear stored original sale prices
+                    delete_post_meta($record->post_id, '_original_bgn_sale_price');
+                    delete_post_meta($record->post_id, '_original_eur_sale_price');
                 }
                 
                 $product->save();
